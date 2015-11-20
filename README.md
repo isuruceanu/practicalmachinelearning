@@ -3,7 +3,7 @@ Practical Machine Learning
 
 Course Project for Practical Machine Learning on Coursera
 
-#### To view html report online, please click [here](http://isuruceanu.github.io/practicalmachinelearning/PMLAnalysis.html).         
+#### To view html report online, please click [here](http://isuruceanu.github.io/PMLAnalysis.html).         
 
 * [PMLAnalysis.Rmd](./PMLAnalysis.Rmd): R markdown document for course project report.        
 * [PMLAnalysis.html](./PMLAnalysis.html): Compiled html file for course project report.   

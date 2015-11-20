@@ -107,13 +107,13 @@ confusion.Rf$overall["Accuracy"]
 confusion.Bt$overall["Accuracy"]
 ```
 
-The Accuracy of the Random Forest is `r round(100* confusion.Rf$overall["Accuracy"], 2)`% which is begger then Boosting Tree with an Accuracy of `r round(100* confusion.Bt$overall["Accuracy"], 2)`%
+The Accuracy of the Random Forest is `r round(100* confusion.Rf$overall["Accuracy"], 2)`% which is bigger then Boosting Tree with an Accuracy of `r round(100* confusion.Bt$overall["Accuracy"], 2)`%
 
-So Random forest model proved very robust and adequete to predict new data.
+So Random forest model proved very robust and adequate to predict new data.
 
 ### Predictions
 
-Now the model will be applyed for testing data in _testing_ data.frame to predict 20 unseen results of new data.
+Now the model will be applied for testing data in _testing_ data.frame to predict 20 unseen results of new data.
 
 ```{r}
 predict.testing <- predict(model.Rf, testing)
