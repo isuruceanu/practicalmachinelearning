@@ -1,0 +1,131 @@
+---
+title: "Quantified Self Movement Data Analysis"
+author: "Ion Suruceanu"
+date: "November 20, 2015"
+output: html_document
+---
+
+### Executive Summary
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
+
+The aim of this analysis was to use data collected from accelerometers placed on the belt, forearm, arm, and dumbell of six participants to predict how well they were doing the exercise in terms of the classification in the data.
+
+
+### Getting and cleaning data
+
+Libraries were loaded in the background
+
+```{r, echo=FALSE, message=FALSE}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(corrplot)
+library(kernlab)
+library(knitr)
+library(gbm)
+library(survival)
+library(splines)
+library(parallel)
+library(plyr)
+
+```
+
+Loading _project.R_ file which contains constants and functions for data loading. 
+
+```{r, message=FALSE}
+source("project.R")
+
+file.download(plm.training.url, plm.training.csv)
+file.download(plm.testing.url, plm.testing.csv)
+
+trainingRaw <- read.csv(plm.training.csv,  na.strings= c("NA",""," "))
+testingRaw <- read.csv(plm.testing.csv,  na.strings= c("NA",""," "))
+
+dim(trainingRaw)
+dim(testingRaw)
+
+```
+
+After loading _training_ and _testing_ we can see that training contains 19622 in 160 variables/feature and testing only 20 records for those 160 variables. The first 8 columns that acted as identifiers for the experiment were removed 
+
+```{r}
+trainingRaw <- trainingRaw[, colSums(is.na(trainingRaw)) == 0] 
+testingRaw <- testingRaw[, colSums(is.na(testingRaw)) == 0] 
+
+training <- trainingRaw[8:length(trainingRaw)]
+testing <- testingRaw[8:length(testingRaw)]
+
+```
+
+Now, the cleaned datasets have 53 variables in each data.frame. Traning contains 13737 observations due removing rows with NA only.
+
+We will split the cleaned _training_ data set in training and validation sets in a 70:30 ratio to train the model and then test it against data it was not specifically fitted to.
+
+```{r}
+set.seed(171615) # set random number generator seed for reproducible purpose
+
+inTrain <- createDataPartition(training$classe, p=0.7, list=F)
+training.data <- training[inTrain, ]
+training.validation <- training[-inTrain, ]
+
+```
+
+### Exploratory data
+
+Figure bellow plots the correlations between features.
+
+```{r}
+dim(training.data)
+cplot <- cor(training.data[sapply(training.data, is.numeric)],use="pairwise", method="spearman")
+corrplot(cplot, order = "FPC", method="circle", type="lower", tl.cex=0.8,tl.col=rgb(0, 0, 0))
+```
+
+
+Red and blue colours indicate a highly negative and positive relationship respectively between the variables.
+
+### Data modelling
+
+In this analysis we will try to fit two models:
+_Boosting Tree_: its combines weak learners into a single strong learner, in an iterative fashion. It is easiest to explain in the least-squares regression setting, where the goal is to learn a model.
+_Random Forest_: it automatically selects important variables and is robust to correlated covariates & outliers in general. 5-fold is used for cross validation when applying the algorithm.
+
+At the end we will compare the results of two and the best one will be selected.
+
+```{r}
+control <- trainControl(method = "cv", 5)
+model.Rf <- train(classe ~ ., data = training.data, method = "rf", trControl=control, ntree=250)
+model.Bt <- train(classe ~ ., training.data, method = "gbm", verbose = F, trControl=control) 
+
+predict.Rf <- predict(model.Rf, training.validation)
+predict.Bt <- predict(model.Bt, training.validation)
+
+confusion.Rf <- confusionMatrix(predict.Rf, training.validation$classe)
+confusion.Bt <- confusionMatrix(predict.Bt, training.validation$classe)
+
+confusion.Rf$overall["Accuracy"]
+confusion.Bt$overall["Accuracy"]
+```
+
+The Accuracy of the Random Forest is `r round(100* confusion.Rf$overall["Accuracy"], 2)`% which is begger then Boosting Tree with an Accuracy of `r round(100* confusion.Bt$overall["Accuracy"], 2)`%
+
+So Random forest model proved very robust and adequete to predict new data.
+
+### Predictions
+
+Now the model will be applyed for testing data in _testing_ data.frame to predict 20 unseen results of new data.
+
+```{r}
+predict.testing <- predict(model.Rf, testing)
+predict.testing
+```
+
+At the end will save the predicted values to own file of each 20 results.
+```{r}
+pml_write_files(predict.testing)
+```
+
+###Conclusions
+
+Boosting Tree training is very slow and perform a little bit worse than Random Forest which ran about 4 times faster and with an Accuracy of `r round(100* confusion.Rf$overall["Accuracy"], 2)`%. So for final prediction for testing data Random Forest was selected.
+
